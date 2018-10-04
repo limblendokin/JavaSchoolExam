@@ -1,5 +1,7 @@
 package com.tsystems.javaschool.tasks.calculator;
 
+import java.util.Scanner;
+
 public class Calculator {
 
     /**
@@ -12,7 +14,9 @@ public class Calculator {
      */
     public String evaluate(String statement) {
         // TODO: Implement the logic here
-        return "";
+
+        return null;
     }
+
 
 }

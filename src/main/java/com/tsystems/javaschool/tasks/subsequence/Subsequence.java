@@ -1,5 +1,7 @@
 package com.tsystems.javaschool.tasks.subsequence;
 
+import com.sun.javaws.exceptions.InvalidArgumentException;
+
 import java.util.List;
 
 public class Subsequence {
@@ -14,7 +16,20 @@ public class Subsequence {
      */
     @SuppressWarnings("rawtypes")
     public boolean find(List x, List y) {
-        // TODO: Implement the logic here
-        return false;
+        int j = 0;
+        int i = 0;
+        if(x != null && y != null) {
+            while(i < x.size() && j < y.size()){
+                if(y.get(j)==x.get(i)){
+                    i++;
+                }
+                j++;
+            }
+        }
+        else throw new IllegalArgumentException();
+        if(i == x.size())
+            return true;
+        else
+            return false;
     }
 }

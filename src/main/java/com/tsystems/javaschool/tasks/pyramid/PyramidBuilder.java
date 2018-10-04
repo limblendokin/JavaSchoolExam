@@ -1,5 +1,6 @@
 package com.tsystems.javaschool.tasks.pyramid;
 
+import java.util.Comparator;
 import java.util.List;
 
 public class PyramidBuilder {
@@ -13,8 +14,24 @@ public class PyramidBuilder {
      * @throws {@link CannotBuildPyramidException} if the pyramid cannot be build with given input
      */
     public int[][] buildPyramid(List<Integer> inputNumbers) {
-        // TODO : Implement your solution here
-        return new int[0][0];
+
+        double doubleRows = (-1 + Math.sqrt(1 + inputNumbers.size() * 8)) / 2;
+        // TODO : Check NaN and +-Inf
+        if(doubleRows%1==0 && !inputNumbers.contains(null)){
+            inputNumbers.sort(Comparator.naturalOrder());
+            int rows = (int)doubleRows;
+            int width = 1 + 2*(rows-1);
+            int inputNumbersIndex = 0;
+            int[][] arr = new int[rows][width];
+            for(int i = 0; i<rows; i++){
+                for(int j = rows-i-1; j<=width-rows+i; j+=2){
+                    arr[i][j] = inputNumbers.get(inputNumbersIndex++);
+                }
+            }
+            return arr;
+        }
+        else throw new CannotBuildPyramidException();
+
     }
 
 
