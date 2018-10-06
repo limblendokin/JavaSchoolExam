@@ -1,7 +1,5 @@
 package com.tsystems.javaschool.tasks.subsequence;
 
-import com.sun.javaws.exceptions.InvalidArgumentException;
-
 import java.util.List;
 
 public class Subsequence {
