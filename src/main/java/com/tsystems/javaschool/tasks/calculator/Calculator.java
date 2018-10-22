@@ -11,10 +11,16 @@ public class Calculator {
         READING_OPERATION
     }
     private String[] expression;
+
+    // I could use java.util.Queue, but i didn't know if this permitted
+    // Because this task can be done with javax.script.ScriptEngine
+    // easily, and not seems like this task was about that.
     private String[] queue;
     private int queueRearPointer = 0;
     private int queueFrontPointer = 0;
-    private String queueLastOperation = "+";
+
+    private String queueLastOperationFromLastEvaluation = "+";
+    Double result = 0.0;
 
     /**
      * Evaluate statement represented as string.
@@ -28,15 +34,24 @@ public class Calculator {
         // TODO: Implement the logic here
         if(statement == null || statement.equals(""))
             return null;
+        // Using lookaround and lookbehind to split statement into operands and operations
         expression = statement.split("(?<=[+\\-=*/()])|(?=[+\\-=*/()])");
+
+        // init values of state machine
+        // machine queues up elements
         OperationState operationState = OperationState.ADDITION_OR_SUBSTRACTION;
         ExpressionReadState readState = ExpressionReadState.READING_OPERAND;
-        queue = new String[50];
+        queue = new String[expression.length+1];
         Double solvedQueue;
         String prevStateOperation;
         String prevReadedOperand = "0";
-        Double result = 0.0;
-        if(expression.length < 2){
+        if(expression[0].equals("-")){
+            // if first operand is negative, then we start parsing from operation read
+            // Also our first operand in queue is "0"
+            readState = ExpressionReadState.READING_OPERATION;
+        }
+        else if(expression.length == 1){
+            // if
             return expression[0];
         }
         else if(expression[1].equals("*") || expression[1].equals("/")){
@@ -48,6 +63,7 @@ public class Calculator {
         for(int i = 0; i < expression.length; i++){
             if(readState == ExpressionReadState.READING_OPERAND){
                 if(Character.isDigit(expression[i].charAt(0))){
+                    // store operand in the var to decide what to do with it in the reading operation section
                     prevReadedOperand = expression[i];
                 }
                 else if(expression[i].charAt(0) == '('){
@@ -57,49 +73,70 @@ public class Calculator {
                     if(closingBracketIndex != null) {
                         prevReadedOperand = c.evaluate(statement.substring(openingBracketIndex+1, closingBracketIndex));
                         if(prevReadedOperand == null){
+                            // if evaluation of expression in parentheses fails
                             return null;
                         }
                         i = findExpressionClosingBracketIndex(expression, i);
                     }
                     else{
+                        // if there is no closing bracket in the statement
                         return null;
                     }
                 }
+                // if expression has multiple operators together
                 else return null;
                 readState = ExpressionReadState.READING_OPERATION;
             }
             else {
                 if(didStateChanged(expression[i], operationState)){
                     operationState = changeState(operationState);
+                    // if previous operation are multiplication or division and next operation are
+                    // addition or subtraction, then we have to add operand from reading state,
+                    // evaluate queued elements, queue accumulating value(result) and operation, that was
+                    // before this queue
                     if(operationState == OperationState.ADDITION_OR_SUBSTRACTION) {
                         enQueue(prevReadedOperand);
                         enQueue(expression[i]);
-                        prevStateOperation = queueLastOperation;
+                        prevStateOperation = queueLastOperationFromLastEvaluation;
                         solvedQueue = evaluateQueue();
+                        if(solvedQueue==null){
+                            return null;
+                        }
                         enQueue(Double.toString(result));
                         enQueue(prevStateOperation);
                         enQueue(Double.toString(solvedQueue));
-                        enQueue(queueLastOperation);
+                        enQueue(queueLastOperationFromLastEvaluation);
                     }
+                    // if opposite, then we evaluate queue first, and then
+                    // adding operand from read state
                     else{
                         result = evaluateQueue();
+                        if(result == null){
+                            return null;
+                        }
                         enQueue(prevReadedOperand);
                         enQueue(expression[i]);
                     }
                 }
                 else{
+                    // if current and previous operation are same,
+                    // then just add operand from read state and operation in the queue
                     enQueue(prevReadedOperand);
                     enQueue(expression[i]);
                 }
                 readState = ExpressionReadState.READING_OPERAND;
             }
         }
+        if(readState == ExpressionReadState.READING_OPERAND)
+            // if expression ends with operator
+            return null;
         enQueue(prevReadedOperand);
         if(operationState == OperationState.MULTIPLICATION_OR_DIVISION) {
-            prevStateOperation = queueLastOperation;
+            prevStateOperation = queueLastOperationFromLastEvaluation;
             enQueue("");
             solvedQueue = evaluateQueue();
             if(solvedQueue == null)
+                // zero divide
                 return null;
             enQueue(Double.toString(result));
             enQueue(prevStateOperation);
@@ -108,10 +145,10 @@ public class Calculator {
         result = evaluateQueue();
 
         if(result == null){
+            // this happens, when there is a zero divide int the queue
             return null;
         }
-        /*else
-            result += solvedQueue;*/
+        // cut the zeroes from the end of string
         return String.format("%.5f", result).replaceAll("0+$", "").replaceAll("[.]$", "");
     }
 
@@ -134,22 +171,43 @@ public class Calculator {
         }
         return false;
     }
+
+    /**
+     *
+     * @param operationState Current operation state
+     * @return Returns oposite operation state
+     */
+
     private OperationState changeState(OperationState operationState){
         return operationState == OperationState.ADDITION_OR_SUBSTRACTION ? OperationState.MULTIPLICATION_OR_DIVISION : OperationState.ADDITION_OR_SUBSTRACTION;
     }
+
+    /**
+     *
+     * @return Retrieve value from the queue
+     */
     private String deQueue(){
         if(queueRearPointer<queue.length)
             return queue[queueRearPointer++];
         else
             return null;
     }
+
+    /**
+     *
+     * @param value Store value in the queue
+     */
     private void enQueue(String value){
         queue[queueFrontPointer++] = value;
     }
+
+    /**
+     *
+     * @return Perform queued up operations, return result and store last, not performed operation in a var
+     */
     private Double evaluateQueue(){
         Double acc = 0.0;
         Double operand = 0.0;
-        //String operation = queueLastOperation;
         String operation = "+";
         while(!isQueueEmpty()){
             operand = tryParseDouble(deQueue());
@@ -177,12 +235,17 @@ public class Calculator {
                 }
             }
         }
-        queueLastOperation = operation;
+        queueLastOperationFromLastEvaluation = operation;
+        // empty queue
+        queueRearPointer = 0;
+        queueFrontPointer = 0;
         return acc;
     }
     private boolean isQueueEmpty(){
         return queueFrontPointer <= queueRearPointer;
     }
+    // I could use regex to determine if it is parsable, but I didn't figure out
+    // if I can use new imports, even if they are in JDK_8
     private Double tryParseDouble(String str){
         try{
             return Double.parseDouble(str);
@@ -203,8 +266,9 @@ public class Calculator {
             }
             curIndex++;
         } while(openingBracketCount!=0 && curIndex < statement.length());
+        --curIndex;
         if(curIndex<statement.length()){
-            return --curIndex;
+            return curIndex;
         }
         else{
             return null;
@@ -229,8 +293,9 @@ public class Calculator {
             }
             curIndex++;
         } while(openingBracketCount!=0 && curIndex < expression.length);
+        --curIndex;
         if(curIndex<expression.length){
-            return --curIndex;
+            return curIndex;
         }
         else{
             return null;

@@ -4,7 +4,9 @@ import org.junit.Assert;
 import org.junit.Test;
 
 public class CalculatorCustomTest {
-    Calculator calc = new Calculator();
+
+    private Calculator calc = new Calculator();
+
     @Test
     public void evaluate20() {
         //given
@@ -83,6 +85,30 @@ public class CalculatorCustomTest {
         //given
         String input = "1+(1+1)";
         String expectedResult = "3";
+
+        //run
+        String result = calc.evaluate(input);
+
+        //assert
+        Assert.assertEquals(expectedResult, result);
+    }
+    @Test
+    public void evaluate27() {
+        //given
+        String input = "1/0";
+        String expectedResult = null;
+
+        //run
+        String result = calc.evaluate(input);
+
+        //assert
+        Assert.assertEquals(expectedResult, result);
+    }
+    @Test
+    public void evaluate28() {
+        //given
+        String input = "1*2/0";
+        String expectedResult = null;
 
         //run
         String result = calc.evaluate(input);
